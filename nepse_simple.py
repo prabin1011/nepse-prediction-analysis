@@ -8,8 +8,55 @@ import openpyxl
 import matplotlib.pyplot as plt
 import bs4
 import html5lib
+import os
 
 # Corrected asadas with proper HTML structure
+asadas = """<html>
+<head>
+  <title>NEPSE SIMPLE</title>
+  <script>
+  document.getElementById('mode-toggle').addEventListener('click', () => {
+    document.body.classList.toggle('dark')
+    localStorage.setItem(
+      'theme',
+      document.body.classList.contains('dark') ? 'dark' : 'light'
+    )
+  })
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark')
+  }
+  </script>
+  <style>
+    body {
+      padding: 10% 3% 10% 3%;
+      text-align: center;
+    }
+    img {
+      height: 140px;
+      width: 140px;
+    }
+    h1 {
+      color: #32a852;
+    }
+    .mode {
+      float: right;
+    }
+    .change {
+      cursor: pointer;
+      border: 1px solid #555;
+      border-radius: 40%;
+      width: 20px;
+      text-align: center;
+      padding: 5px;
+      margin-left: 8px;
+    }
+    .dark {
+      background-color: #000;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
   <header>
     <div id="top-header">
       <div id="logo">
@@ -36,12 +83,9 @@ import html5lib
     </div>
   </header>
   <!-- main content will be added here -->
-"""
+</body>
+</html>"""
 
-# Rest of your code remains unchanged
-# ... (include all other parts of your code here)
-
-# For example:
 # --------- Fetch and process Indices data with error handling ---------
 url2 = "https://www.nepalipaisa.com/Indices.aspx"
 headers = {
@@ -51,81 +95,113 @@ headers = {
 try:
     response = requests.get(url2, headers=headers)
     print("Status code for Indices:", response.status_code)
-
     if response.status_code == 200:
         html2 = response.content
         try:
             df_list2 = pd.read_html(html2)
             print(f"Found {len(df_list2)} tables in Indices page")
-            df22 = df_list2[-1]
-
-            data2 = np.array(df22)
-            data2 = np.flip(data2)
-            plot = data2[0: data2.shape[0], 2]
-
-            plt.figure(figsize=(40, 25))
-            plt.plot(plot, "go--")
-            plt.savefig("graph.png")
-            plt.close()
-            print("Graph saved as graph.png")
+            if df_list2:
+                df22 = df_list2[-1]
+                data2 = np.array(df22)
+                data2 = np.flip(data2)
+                plot = data2[0: data2.shape[0], 2]
+                plt.figure(figsize=(40, 25))
+                plt.plot(plot, "go--")
+                plt.savefig("graph.png")
+                plt.close()
+                print("Graph saved as graph.png, shape:", data2.shape)
+            else:
+                print("No tables found in Indices page")
         except Exception as e:
             print("Error parsing tables from Indices page:", e)
     else:
-        print("Failed to fetch Indices page")
+        print("Failed to fetch Indices page, status:", response.status_code)
 except Exception as e:
     print("Error fetching Indices page:", e)
 
 # --------- Fetch and save stock data ---------
 try:
     urlstock = "https://www.sharesansar.com/market"
-    htmlstock = requests.get(urlstock).content
-    df_list_stock = pd.read_html(htmlstock)
-    df_stock = df_list_stock[3]
-    df_stock.to_csv("stock.csv", encoding='utf-8')
-    print("Stock data saved as stock.csv")
+    response_stock = requests.get(urlstock, headers=headers)
+    print("Status code for Sharesansar:", response_stock.status_code)
+    if response_stock.status_code == 200:
+        htmlstock = response_stock.content
+        df_list_stock = pd.read_html(htmlstock)
+        if df_list_stock and len(df_list_stock) > 3:
+            df_stock = df_list_stock[3]
+            df_stock.to_csv("stock.csv", encoding='utf-8')
+            print("Stock data saved as stock.csv, shape:", df_stock.shape)
+        else:
+            print("No valid stock table found")
+    else:
+        print("Failed to fetch Sharesansar market data")
 except Exception as e:
     print("Error in stock data section:", e)
 
 # --------- Fetch and save IPO data ---------
 try:
     urlshare = "https://www.sharesansar.com/?show=home"
-    htmlshare = requests.get(urlshare).content
-    df_list_share = pd.read_html(htmlshare)
-    df_share = df_list_share[2]
-    df_share.to_csv("ipo.csv", encoding='utf-8')
-    df_share.to_html("ipo.html", encoding='utf-8')
-    print("IPO data saved as ipo.csv and ipo.html")
+    response_share = requests.get(urlshare, headers=headers)
+    print("Status code for Sharesansar IPO:", response_share.status_code)
+    if response_share.status_code == 200:
+        htmlshare = response_share.content
+        df_list_share = pd.read_html(htmlshare)
+        if df_list_share and len(df_list_share) > 2:
+            df_share = df_list_share[2]
+            df_share.to_csv("ipo.csv", encoding='utf-8')
+            df_share.to_html("ipo.html", encoding='utf-8')
+            print("IPO data saved as ipo.csv and ipo.html, shape:", df_share.shape)
+        else:
+            print("No valid IPO table found")
+    else:
+        print("Failed to fetch Sharesansar IPO data")
 except Exception as e:
     print("Error in IPO data section:", e)
 
 # --------- Fetch and save market summary pages ---------
 try:
-    nepse = requests.get("http://nepalstock.com")
-    soup = bs4.BeautifulSoup(nepse.text, "html5lib")
-    category = soup.find_all(class_="panel-body")
-
-    html_market_summary = asadas + str(category[3]) + "</body></html>"
-    with open("marketsummary.html", "w", encoding='utf-8') as output:
-        output.write(html_market_summary)
-    print("marketsummary.html saved")
-
-    html_market_data = asadas + str(category[2]) + "</body></html>"
-    with open("marketdata.html", "w", encoding='utf-8') as output:
-        output.write(html_market_data)
-    print("marketdata.html saved")
-
-    html_today_index = asadas + str(category[4]) + "</body></html>"
-    with open("todayindex.html", "w", encoding='utf-8') as output:
-        output.write(html_today_index)
-    print("todayindex.html saved")
+    nepse_url = "https://www.nepalstock.com.np"  # Updated URL
+    response_nepse = requests.get(nepse_url, headers=headers)
+    print("Status code for Nepal Stock:", response_nepse.status_code)
+    if response_nepse.status_code == 200:
+        soup = bs4.BeautifulSoup(response_nepse.text, "html5lib")
+        category = soup.find_all(class_="panel-body")
+        if category:
+            html_market_summary = asadas + str(category[3]) + "</body></html>"
+            with open("marketsummary.html", "w", encoding='utf-8') as output:
+                output.write(html_market_summary)
+            print("marketsummary.html saved")
+            html_market_data = asadas + str(category[2]) + "</body></html>"
+            with open("marketdata.html", "w", encoding='utf-8') as output:
+                output.write(html_market_data)
+            print("marketdata.html saved")
+            html_today_index = asadas + str(category[4]) + "</body></html>"
+            with open("todayindex.html", "w", encoding='utf-8') as output:
+                output.write(html_today_index)
+            print("todayindex.html saved")
+        else:
+            print("No panel-body elements found on Nepal Stock page")
+    else:
+        print("Failed to fetch Nepal Stock page")
 except Exception as e:
     print("Error in market summary section:", e)
 
 # --------- Fetch JSON from nepalstock.com today's price export ---------
 try:
-    df = pd.read_html("http://www.nepalstock.com/todaysprice/export")
-    df = df[-1].T
-    df.to_json("nepsesimple.json", orient='columns', force_ascii=False)
-    print("nepsesimple.json saved")
+    export_url = "https://www.nepalstock.com.np/todaysprice/export"  # Updated URL
+    response_export = requests.get(export_url, headers=headers)
+    print("Status code for export data:", response_export.status_code)
+    if response_export.status_code == 200:
+        df = pd.read_html(response_export.content)
+        if df and len(df) > 0:
+            df = df[-1].T
+            df.to_json("nepsesimple.json", orient='columns', force_ascii=False)
+            print("nepsesimple.json saved, shape:", df.shape)
+        else:
+            print("No tables found in export data")
+    else:
+        print("Failed to fetch export data")
 except Exception as e:
     print("Error in JSON export section:", e)
+
+print("Working directory:", os.getcwd())
