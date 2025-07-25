@@ -10,52 +10,6 @@ import bs4
 import html5lib
 
 # Corrected asadas with proper HTML structure
-asadas = """<html>
-<head>
-  <title>NEPSE SIMPLE</title>
-  <script>
-  document.getElementById('mode-toggle').addEventListener('click', () => {
-    document.body.classList.toggle('dark')
-    localStorage.setItem(
-      'theme',
-      document.body.classList.contains('dark') ? 'dark' : 'light'
-    )
-  })
-  if (localStorage.getItem('theme') === 'dark') {
-    document.body.classList.add('dark')
-  }
-  </script>
-  <style>
-    body{
-      padding:10% 3% 10% 3%;
-      text-align:center;
-    }
-    img{
-      height:140px;
-      width:140px;
-    }
-    h1{
-      color: #32a852;
-    }
-    .mode {
-      float:right;
-    }
-    .change {
-      cursor: pointer;
-      border: 1px solid #555;
-      border-radius: 40%;
-      width: 20px;
-      text-align: center;
-      padding: 5px;
-      margin-left: 8px;
-    }
-    .dark{
-      background-color: #000;
-      color: #fff;
-    }
-  </style>
-</head>
-<body>
   <header>
     <div id="top-header">
       <div id="logo">
